@@ -613,7 +613,7 @@ public class AirImagePickerExtensionContext extends FREContext
 	  File file = null;
 	  try {
 	    file = File.createTempFile("airImagePicker-", 
-	      suffix, getActivity().getCacheDir());
+	      suffix, getActivity().getExternalCacheDir());
 	    // store the temp file for later cleanup
 	    _tempFiles.add(file);
 	  }
