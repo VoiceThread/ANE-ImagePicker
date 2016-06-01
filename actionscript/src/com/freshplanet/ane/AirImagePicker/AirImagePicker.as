@@ -350,7 +350,7 @@ package com.freshplanet.ane.AirImagePicker
 			{
 				if (callback != null) {
 				  _callback = null;
-				  callback(STATUS_DID_FINISH);
+				  callback(STATUS_DID_FINISH, null);
 				}
 			}
 			else if (event.code == "LOGGING") // Simple log message
