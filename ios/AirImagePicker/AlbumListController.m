@@ -144,9 +144,9 @@
       autorelease];  
   // set it up
   albumCell.textLabel.text = [coll localizedTitle];
-  if ([coll estimatedAssetCount] != NSNotFound) {
+  if (([result count] != NSNotFound) && ([result count] > 0)) {
     albumCell.detailTextLabel.text = [NSString stringWithFormat:@"(%li)",
-      (long)[coll estimatedAssetCount]];
+      (long)[result count]];
   }
   albumCell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
   // load a thumbnail using the first asset in the collection

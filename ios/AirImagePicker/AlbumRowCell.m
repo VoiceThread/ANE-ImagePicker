@@ -113,8 +113,23 @@ NSString *AlbumRowSelectionDidChangeNotification =
   // get the location of the thumbnail
   CGRect thumbRect = 
     CGRectMake(0.0, 0.0, thumbnailWidth, thumbnailWidth);
+  // offset so the thumbnail fills the allocated space and is centered
+  CGFloat w = CGImageGetWidth(image);
+  CGFloat h = CGImageGetHeight(image);
+  if (w >= h) {
+    w = (w * thumbnailWidth) / h;
+    h = thumbnailWidth;
+  }
+  else {
+    h = (h * thumbnailWidth) / w;
+    w = thumbnailWidth;
+  }
+  CGFloat x = (thumbnailWidth - w) / 2.0;
+  CGFloat y = (thumbnailWidth - h) / 2.0;
+  CGRect imageRect = CGRectMake(x, y, w, h);
   // draw the thumbnail
-  CGContextDrawImage(context, thumbRect, image);
+  CGContextClipToRect(context, thumbRect);
+  CGContextDrawImage(context, imageRect, image);
   CGContextRestoreGState(context);
   // if the asset is a video, show some info about it
   if (duration > 0.0) {

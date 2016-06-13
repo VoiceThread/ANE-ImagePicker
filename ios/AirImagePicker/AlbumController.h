@@ -33,6 +33,8 @@
   
   PHImageManager *imageManager;
   
+  bool isCameraRoll;
+  
 }
 
 - (id)initWithGroup:(id)inGroup;

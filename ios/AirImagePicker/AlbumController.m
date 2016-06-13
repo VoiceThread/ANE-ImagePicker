@@ -48,15 +48,24 @@
     // listen for the selection changing
     [self observeNotificationsNamed:AlbumRowSelectionDidChangeNotification 
       selector:@selector(selectionDidChange:)];
+    // determine whether we're showing the cameral roll
+    isCameraRoll = NO;
     // set up the nav bar
     if ([inGroup isKindOfClass:[ALAssetsGroup class]]) {
       group = [inGroup retain];
       self.title = [group valueForProperty:ALAssetsGroupPropertyName];
+      NSNumber *typeNum = [group valueForProperty:ALAssetsGroupPropertyType];
+      if (typeNum) {
+        NSInteger type = [typeNum integerValue];
+        if (type & ALAssetsGroupSavedPhotos) isCameraRoll = YES;
+      }
     }
     else if ([inGroup isKindOfClass:[PHAssetCollection class]]) {
       self.title = [inGroup localizedTitle];
       group = [[PHAsset fetchAssetsInAssetCollection:inGroup options:nil] retain];
       imageManager = [[PHCachingImageManager alloc] init];
+      if ([inGroup assetCollectionSubtype] == 
+        PHAssetCollectionSubtypeSmartAlbumUserLibrary) isCameraRoll = YES;
     }
     // make a button for the user to finish
     doneButton = [[UIBarButtonItem alloc] 
@@ -104,24 +113,10 @@
     self.tableView.contentInset.right, 
     [self thumbnailSpacing], 
     self.tableView.contentInset.left);
-  // see what type of album we're showing
-  if ([group isKindOfClass:[ALAssetsGroup class]]) {
-    NSNumber *typeNum = [group valueForProperty:ALAssetsGroupPropertyType];
-    if (typeNum) {
-      NSInteger type = [typeNum integerValue];
-      // if it's the camera roll, scroll to the bottom so that the newest
-      //  content is the most easily accessible
-      if (type & ALAssetsGroupSavedPhotos) {
-        NSUInteger rows = 
-          [self tableView:self.tableView numberOfRowsInSection:0];
-        if (rows > 0) {
-          [self.tableView 
-            scrollToRowAtIndexPath:
-              [NSIndexPath indexPathForRow:(rows - 1) inSection:0]
-            atScrollPosition:UITableViewScrollPositionBottom animated:NO];
-        }
-      }
-    }
+  // if we're showing the camera roll, scroll to the bottom so that the newest
+  //  content is the most easily accessible
+  if (isCameraRoll) {
+    [self.tableView setContentOffset:CGPointMake(0, CGFLOAT_MAX)];
   }
 }
 - (void)viewDidAppear:(BOOL)animated {
