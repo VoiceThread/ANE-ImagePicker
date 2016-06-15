@@ -277,6 +277,31 @@
     [[PHImageManager defaultManager] requestExportSessionForVideo:asset 
       options:vidOptions exportPreset:AVAssetExportPresetPassthrough 
       resultHandler:^(AVAssetExportSession *exportSession, NSDictionary *info) {
+        // detect failure to download videos from iCloud, which is not allowed 
+        //  on iOS: https://discussions.apple.com/thread/5364797?tstart=0
+        if ([[NSNumber numberWithBool:YES] isEqualToNumber:
+              [info objectForKey:PHImageResultIsInCloudKey]]) {
+          // show an alert
+          UIAlertController* alert = 
+            [UIAlertController alertControllerWithTitle:@"Download Failed"
+              message:@"You can only import video from your camera roll. "
+                      @"If you move this video into your camera roll first, "
+                      @"you can upload it from there."
+              preferredStyle:UIAlertControllerStyleAlert];
+          // when the user taps OK, exit the interface if we're done processing
+          assetsCompleted++;
+          UIAlertAction* defaultAction = [UIAlertAction actionWithTitle:@"OK" 
+            style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+              if (assetsCompleted >= assetsTotal) {
+                [self assetProcessingDidFinish];
+              }
+            }];
+          [alert addAction:defaultAction];
+          dispatch_async(dispatch_get_main_queue(), ^{
+            [progressVC presentViewController:alert animated:YES completion:nil];
+          });
+          return;
+        }
         // make a temp file
         NSURL *toURL = [NSURL tempFileURLWithPrefix:@"temp-AirImagePicker" extension:@"tmp"];
         exportSession.outputURL = toURL;
@@ -295,6 +320,9 @@
                   assetPickerController:self didPickMediaWithURL:toURL];
               }
             });
+          }
+          else {
+            NSLog(@"AirImagePicker:  Export session failed with status %li", exportSession.status);
           }
           assetsCompleted++;
           if (assetsCompleted >= assetsTotal) {
