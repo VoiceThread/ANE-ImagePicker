@@ -22,6 +22,8 @@
 
 // whether to always use the native pickers (no multiselect support)
 #define FORCE_NATIVE_PICKER NO
+// whether to use iOS 9 features
+#define USE_IOS_9 NO
 
 #if ! FORCE_NATIVE_PICKER
   #import "AssetPickerController.h"

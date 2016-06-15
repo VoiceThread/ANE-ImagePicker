@@ -17,7 +17,9 @@
 //////////////////////////////////////////////////////////////////////////////////////
 
 #import <MobileCoreServices/MobileCoreServices.h>
+#import <AVFoundation/AVFoundation.h>
 
+#import "AirImagePicker.h"
 #import "AssetPickerController.h"
 #import "AlbumListController.h"
 
@@ -47,8 +49,13 @@
 - (float)progress {
   if (progressDict) {
     double sum = 0.0, total = 0.0;
-    for (NSNumber *p in [progressDict allValues]) {
-      sum += [p doubleValue];
+    for (NSObject *p in [progressDict allValues]) {
+      if ([p isKindOfClass:[NSNumber class]]) {
+        sum += [p doubleValue];
+      }
+      else if ([p isKindOfClass:[AVAssetExportSession class]]) {
+        sum += 0.5 + ((float)[(AVAssetExportSession *)p progress] / 2.0);
+      }
       total += 1.0;
     }
     _progress = sum / total;
@@ -198,7 +205,7 @@
 }
 - (void)processPHAsset:(PHAsset *)asset {
   // use the resources framework to source data if we have iOS 9+
-  if ([[UIDevice currentDevice].systemVersion intValue] >= 9) {
+  if ((USE_IOS_9) && ([[UIDevice currentDevice].systemVersion intValue] >= 9)) {
     NSArray *resources = [PHAssetResource assetResourcesForAsset:(PHAsset *)asset];
     // get the type of resource we want to use
     PHAssetResourceType expectedType = PHAssetResourceTypePhoto;
@@ -247,19 +254,72 @@
     NSLog(@"AirImagePicker:  The expected resource type %li was not found for media type %li.", 
       (long)expectedType, (long)asset.mediaType);
     assetsCompleted++;
+    if (assetsCompleted >= assetsTotal) {
+      [self assetProcessingDidFinish];
+    }
   }
-  // use the imagemanager to source data in iOS 8
+  // use the imagemanager with an export session to request video data in iOS 8
+  else if ((asset.mediaType == PHAssetMediaTypeVideo) ||
+           (asset.mediaType == PHAssetMediaTypeAudio)) {
+    // fetch videos from the network
+    PHVideoRequestOptions *vidOptions = 
+      [[[PHVideoRequestOptions alloc] init] autorelease];
+    vidOptions.networkAccessAllowed = YES;
+    vidOptions.deliveryMode = PHVideoRequestOptionsDeliveryModeMediumQualityFormat;
+    // show video fetch progress
+    vidOptions.progressHandler = ^(double progress, NSError *error, BOOL *stop, NSDictionary *info) {
+        if (error) NSLog(@"AirImagePicker:  Video data request failed: %@", error);
+        dispatch_async(dispatch_get_main_queue(), ^{
+          [progressDict setObject:[NSNumber numberWithDouble:(progress / 2.0)] forKey:asset];
+        });
+      };
+    // fetch the video
+    [[PHImageManager defaultManager] requestExportSessionForVideo:asset 
+      options:vidOptions exportPreset:AVAssetExportPresetPassthrough 
+      resultHandler:^(AVAssetExportSession *exportSession, NSDictionary *info) {
+        // make a temp file
+        NSURL *toURL = [NSURL tempFileURLWithPrefix:@"temp-AirImagePicker" extension:@"tmp"];
+        exportSession.outputURL = toURL;
+        // export to quicktime or mp3
+        if (asset.mediaType == PHAssetMediaTypeAudio) 
+          exportSession.outputFileType = AVFileTypeMPEGLayer3;
+        else
+          exportSession.outputFileType = AVFileTypeQuickTimeMovie;
+        // export video to the temp file
+        [exportSession exportAsynchronouslyWithCompletionHandler:^{
+          if (exportSession.status == AVAssetExportSessionStatusCompleted) {
+            // tell the delegate we got the media
+            dispatch_async(dispatch_get_main_queue(), ^{
+              if ([self.delegate respondsToSelector:@selector(assetPickerController:didPickMediaWithURL:)]) {
+                [(NSObject<AssetPickerControllerDelegate> *)self.delegate 
+                  assetPickerController:self didPickMediaWithURL:toURL];
+              }
+            });
+          }
+          assetsCompleted++;
+          if (assetsCompleted >= assetsTotal) {
+            [self assetProcessingDidFinish];
+          }
+        }];
+        // track the progress of the export session
+        [progressDict setObject:exportSession forKey:asset];
+      }];
+  }
+  // use the imagemanager to source image data in iOS 8
   else {
+    // fetch images from the network
     PHImageRequestOptions *imgOptions = 
       [[[PHImageRequestOptions alloc] init] autorelease];
     imgOptions.networkAccessAllowed = YES;
     imgOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
+    // show image fetch progress
     imgOptions.progressHandler = ^(double progress, NSError *error, BOOL *stop, NSDictionary *info) {
         if (error) NSLog(@"AirImagePicker:  Image data request failed: %@", error);
         dispatch_async(dispatch_get_main_queue(), ^{
           [progressDict setObject:[NSNumber numberWithDouble:(progress / 2.0)] forKey:asset];
         });
       };
+    // fetch the image data
     [[PHImageManager defaultManager] requestImageDataForAsset:asset 
       options:imgOptions 
       resultHandler:^(NSData *imageData, NSString *dataUTI,
