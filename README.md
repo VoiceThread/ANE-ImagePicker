@@ -7,37 +7,39 @@ has been adapted by [VoiceThread](https://voicethread.com/) to allow multiple as
 Usage
 -----
 
-    ```actionscript
-    // Take a picture/video with the camera
-    if (AirImagePicker.getInstance().isCameraAvailable())
-    {
-        AirImagePicker.getInstance().displayCamera(function(status:String, media:File=null):void {
-            // Do something with the Media information returned
-        });
-    }
+```actionscript
+// Take a picture/video with the camera
+if (AirImagePicker.getInstance().isCameraAvailable()) {
+  AirImagePicker.getInstance().displayCamera(function(status:String, media:File=null):void {
+      // Do something with the Media information returned
+    });
+}
 
-    // Pick an image from the gallery
-    if (AirImagePicker.getInstance().isImagePickerAvailable())
-    {
-        AirImagePicker.getInstance().displayImagePicker(function(status:String, media:File=null):void {
-            // Do something with the Media information returned
-        });
-    }
-    ```
-    
+// Pick an image from the gallery
+if (AirImagePicker.getInstance().isImagePickerAvailable()) {
+  AirImagePicker.getInstance().displayImagePicker(function(status:String, media:File=null):void {
+      // Do something with the Media information returned
+    });
+}
+```
+
 In the manifestAdditions section of your AIR app manifest, include this in the application element:
-  ```xml
-  <activity
-    android:name="com.freshplanet.ane.AirImagePicker.AirImagePickerActivity"
-    android:configChanges="orientation|keyboard|keyboardHidden|screenSize|screenLayout|fontScale"
-  />
-  ```
+
+```xml
+<activity
+  android:name="com.freshplanet.ane.AirImagePicker.AirImagePickerActivity"
+  android:configChanges="orientation|keyboard|keyboardHidden|screenSize|screenLayout|fontScale"
+/>
+```
+
 The "configChanges" attribute fixes crashes when returning to the app on some Samsung devices.
   
 If you need to use the cropping feature, add this in the manifestAdditions section:
-  ```xml
-  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-  ``
+
+```xml
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+```
+
 This allows images to be shared with the system application that handles cropping.
 
 Advanced features available: square cropping, custom positioning for the gallery image picker on iPad, custom overlay to avoid white screen when losing Stage3D context, and the selection of multiple images and videos.
